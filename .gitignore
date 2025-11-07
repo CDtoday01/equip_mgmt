@@ -1,0 +1,11 @@
+# Python virtual environment
+.venv/
+
+# Node / frontend
+node_modules/
+
+# Byte-compiled / misc
+__pycache__/
+*.pyc
+.env*
+.DS_Store
