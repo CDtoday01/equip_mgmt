@@ -1,9 +1,17 @@
 from rest_framework import serializers
 from users.models import CustomUser
+from departments.models import Department
 
 class CustomUserSerializer(serializers.ModelSerializer):
-    department = serializers.StringRelatedField()  # 顯示部門名稱
+    department = serializers.PrimaryKeyRelatedField(
+        queryset=Department.objects.all(),
+        required=False
+    )
+    department_name = serializers.CharField(source="department.name", read_only=True)
 
     class Meta:
         model = CustomUser
-        fields = ['id_number', 'name', 'email', 'phone', 'title', 'eip_account', 'department']
+        fields = [
+            'id', 'id_number', 'name', 'email', 'phone',
+            'title', 'eip_account', 'department', 'department_name'
+        ]

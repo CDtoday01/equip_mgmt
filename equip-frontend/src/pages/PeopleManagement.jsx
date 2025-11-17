@@ -1,210 +1,198 @@
-import React, { useEffect, useState } from "react";
-import GenericForm from "../components/GenericForm";
-import api from "../api";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 const PeopleManagement = () => {
   const [people, setPeople] = useState([]);
-  const [editingPerson, setEditingPerson] = useState(null);
-  const [sortConfig, setSortConfig] = useState({ key: "name", direction: "asc" });
+  const [selected, setSelected] = useState([]);
+  const [showAction, setShowAction] = useState(false);
+  const [departments, setDepartments] = useState([]);
 
-  // =======================
-  // 欄位設定
-  // =======================
-  const fields = [
-    { name: "name", label: "姓名", type: "text" },
-    { name: "id_number", label: "身份證字號", type: "text" },
-    { name: "email", label: "信箱", type: "email" },
-    { name: "phone", label: "電話", type: "text" },
-    { name: "department", label: "部門", type: "text" },
-    { name: "eip_account", label: "EIP帳號", type: "text" },
-    { name: "title", label: "職稱", type: "text" },
-  ];
-
-  // =======================
-  // 抓取人員資料
-  // =======================
-  const fetchPeople = async () => {
-    try {
-      const res = await api.get("users/");
-      setPeople(res.data);
-    } catch (err) {
-      console.error("取得人員資料失敗:", err.response?.data || err);
-    }
-  };
+  // Dialog 狀態
+  const [dialogType, setDialogType] = useState(null);
+  const [targetDepartment, setTargetDepartment] = useState("");
+  const [updateFields, setUpdateFields] = useState({});
 
   useEffect(() => {
     fetchPeople();
+    fetchDepartments();
   }, []);
 
-  // =======================
-  // 單筆新增 / 編輯
-  // =======================
-  const handleAddSingle = async (person) => {
-    try {
-      const payload = {
-        name: person.name?.trim() ?? "",
-        id_number: person.id_number?.trim() ?? "",
-        email: person.email?.trim() ?? "",
-        phone: person.phone?.trim() ?? "",
-        department: person.department?.trim() ?? "",
-        eip_account: person.eip_account?.trim() ?? "",
-        title: person.title?.trim() ?? "",
-      };
-
-      let res;
-      if (editingPerson) {
-        res = await api.put(`users/${editingPerson.id_number}/`, payload);
-        setPeople((prev) =>
-          prev.map((p) =>
-            p.id_number === editingPerson.id_number ? res.data : p
-          )
-        );
-        setEditingPerson(null);
-      } else {
-        res = await api.post("users/", payload);
-        setPeople((prev) => [...prev, res.data]);
-      }
-
-      alert("資料已成功儲存！");
-    } catch (err) {
-      console.error("新增/更新失敗錯誤:", err.response?.data || err);
-      alert("操作失敗，詳細資訊請查看 console");
-    }
+  const fetchPeople = async () => {
+    const response = await axios.get("/api/users/");
+    setPeople(response.data);
   };
 
-  // =======================
-  // CSV 匯入
-  // =======================
-  const handleAddCSV = async (csvData) => {
-    try {
-      const peopleList = csvData
-        .map((row) => ({
-          name: row["姓名"]?.trim() ?? "",
-          id_number: row["身份證字號"]?.trim() ?? "",
-          email: row["信箱"]?.trim() ?? "",
-          phone: row["電話"]?.trim() ?? "",
-          department: row["部門"]?.trim() ?? "",
-          title: row["職稱"]?.trim() ?? "",
-          eip_account: row["EIP帳號"]?.trim() ?? "",
-        }))
-        .filter((p) => p.name && p.id_number && p.eip_account && p.department);
-
-      if (peopleList.length === 0) {
-        alert("沒有有效資料可匯入。");
-        return;
-      }
-
-      const res = await api.post("users/bulk/", peopleList);
-      console.log("匯入結果：", res.data);
-      alert(`CSV 匯入完成！新增 ${res.data.created} 筆、更新 ${res.data.updated} 筆。`);
-
-      await fetchPeople(); // 匯入後重新抓最新資料
-    } catch (err) {
-      console.error("CSV 匯入整批失敗：", err.response?.data || err);
-      alert("CSV 匯入失敗，詳細資訊請查看 console");
-    }
+  const fetchDepartments = async () => {
+    const response = await axios.get("/api/departments/");
+    setDepartments(response.data);
   };
 
-  // =======================
-  // 刪除
-  // =======================
-  const handleDelete = async (id_number) => {
-    if (!window.confirm("確定要刪除嗎？")) return;
-    try {
-      await api.delete(`users/${id_number}/`);
-      setPeople((prev) => prev.filter((p) => p.id_number !== id_number));
-      alert("刪除成功！");
-    } catch (err) {
-      console.error(err);
-      alert("刪除失敗");
-    }
+  // 勾選邏輯
+  const toggleSelect = (id) => {
+    const updated = selected.includes(id)
+      ? selected.filter((x) => x !== id)
+      : [...selected, id];
+    setSelected(updated);
+    setShowAction(updated.length > 0);
   };
 
-  const handleEdit = (person) => setEditingPerson(person);
-  const cancelEdit = () => setEditingPerson(null);
+  const selectAll = () => {
+    setSelected(people.map((p) => p.id));
+    setShowAction(true);
+  };
 
-  // =======================
-  // 排序
-  // =======================
-  const handleSort = (key) => {
-    setSortConfig((prev) => ({
-      key,
-      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+  const deselectAll = () => {
+    setSelected([]);
+    setShowAction(false);
+  };
+
+  // 統一發送批量請求
+  const sendBatchRequest = async (payload) => {
+    await axios.post("/api/users/batch/", payload);
+    setDialogType(null);
+    fetchPeople();
+    setSelected([]);
+    setShowAction(false);
+  };
+
+  // 動作：離職
+  const batchDeactivate = () => {
+    sendBatchRequest({
+      action: "deactivate",
+      users: selected
+    });
+  };
+
+  // 動作：刪除
+  const batchDelete = () => {
+    sendBatchRequest({
+      action: "delete",
+      users: selected
+    });
+  };
+
+  // 動作：轉調
+  const batchTransfer = () => {
+    sendBatchRequest({
+      action: "transfer",
+      users: selected,
+      department_id: targetDepartment
+    });
+  };
+
+  // 動作：批量更新
+  const batchUpdate = () => {
+    const updateData = selected.map((id) => ({
+      id,
+      ...updateFields,
     }));
+
+    sendBatchRequest({
+      action: "update",
+      users: updateData,
+    });
   };
 
-  const getSortIndicator = (key) => {
-    if (sortConfig.key !== key) return null;
-    return sortConfig.direction === "asc" ? " ↑" : " ↓";
-  };
-
-  const sortedPeople = [...people].sort((a, b) => {
-    const valA = (a[sortConfig.key] ?? "").toString().toLowerCase();
-    const valB = (b[sortConfig.key] ?? "").toString().toLowerCase();
-    if (valA < valB) return sortConfig.direction === "asc" ? -1 : 1;
-    if (valA > valB) return sortConfig.direction === "asc" ? 1 : -1;
-    return 0;
-  });
-
-  // =======================
-  // UI
-  // =======================
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>人員管理</h1>
-      <GenericForm
-        fields={fields}
-        onAddSingle={handleAddSingle}
-        onAddCSV={handleAddCSV}
-        initialValues={editingPerson || {}}
-      />
-      {editingPerson && (
-        <button onClick={cancelEdit} style={{ marginBottom: "10px", backgroundColor: "#ccc" }}>
-          取消編輯
-        </button>
+    <div>
+      <h2>人員管理</h2>
+
+      {showAction && (
+        <div className="action-bar">
+          <button onClick={() => setDialogType("transfer")}>批量轉調</button>
+          <button onClick={() => setDialogType("update")}>批量更新</button>
+          <button onClick={() => setDialogType("deactivate")}>標記離職</button>
+          <button onClick={() => setDialogType("delete")}>刪除</button>
+          <button onClick={selectAll}>全選</button>
+          <button onClick={deselectAll}>取消全選</button>
+        </div>
       )}
 
-      <h2>人員列表</h2>
-      {people.length === 0 ? (
-        <p>目前沒有資料</p>
-      ) : (
-        <table border="1" cellPadding="5" cellSpacing="0">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th onClick={() => handleSort("name")} style={{ cursor: "pointer" }}>
-                姓名{getSortIndicator("name")}
-              </th>
-              <th onClick={() => handleSort("id_number")} style={{ cursor: "pointer" }}>
-                身份證字號{getSortIndicator("id_number")}
-              </th>
-              <th>信箱</th>
-              <th>電話</th>
-              <th>部門</th>
-              <th>職稱</th>
-              <th>EIP帳號</th>
-              <th>操作</th>
+      <table className="user-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>姓名</th>
+            <th>部門</th>
+            <th>職稱</th>
+            <th>EIP帳號</th>
+          </tr>
+        </thead>
+        <tbody>
+          {people.map((person) => (
+            <tr key={person.id}>
+              <td>
+                <input
+                  type="checkbox"
+                  checked={selected.includes(person.id)}
+                  onChange={() => toggleSelect(person.id)}
+                />
+              </td>
+              <td>{person.name}</td>
+              <td>{person.department_name}</td>
+              <td>{person.title}</td>
+              <td>{person.eip_account}</td>
             </tr>
-          </thead>
-          <tbody>
-            {sortedPeople.map((p, idx) => (
-              <tr key={p.id_number}>
-                <td>{idx + 1}</td>
-                <td>{p.name}</td>
-                <td>{p.id_number}</td>
-                <td>{p.email}</td>
-                <td>{p.phone}</td>
-                <td>{p.department}</td>
-                <td>{p.title}</td>
-                <td>{p.eip_account}</td>
-                <td>
-                  <button onClick={() => handleEdit(p)} style={{ marginRight: "5px" }}>編輯</button>
-                  <button onClick={() => handleDelete(p.id_number)}>刪除</button>
-                </td>
-              </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Dialogs */}
+      {dialogType === "transfer" && (
+        <div className="dialog">
+          <h3>批量轉調</h3>
+          <select onChange={(e) => setTargetDepartment(e.target.value)}>
+            <option value="">請選擇部門</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
             ))}
-          </tbody>
-        </table>
+          </select>
+          <button onClick={batchTransfer}>確定</button>
+          <button onClick={() => setDialogType(null)}>取消</button>
+        </div>
+      )}
+
+      {dialogType === "update" && (
+        <div className="dialog">
+          <h3>批量更新欄位</h3>
+
+          <input
+            placeholder="新職稱"
+            onChange={(e) =>
+              setUpdateFields({ ...updateFields, title: e.target.value })
+            }
+          />
+
+          <input
+            placeholder="新分機/電話"
+            onChange={(e) =>
+              setUpdateFields({ ...updateFields, phone: e.target.value })
+            }
+          />
+
+          <button onClick={batchUpdate}>套用</button>
+          <button onClick={() => setDialogType(null)}>取消</button>
+        </div>
+      )}
+
+      {dialogType === "deactivate" && (
+        <div className="dialog">
+          <h3>批量標記離職</h3>
+          <p>確定要標記 {selected.length} 人為離職嗎？</p>
+          <button onClick={batchDeactivate}>確定</button>
+          <button onClick={() => setDialogType(null)}>取消</button>
+        </div>
+      )}
+
+      {dialogType === "delete" && (
+        <div className="dialog">
+          <h3>刪除人員</h3>
+          <p>⚠ 此操作無法復原。確定要刪除 {selected.length} 位人員？</p>
+          <button onClick={batchDelete}>刪除</button>
+          <button onClick={() => setDialogType(null)}>取消</button>
+        </div>
       )}
     </div>
   );

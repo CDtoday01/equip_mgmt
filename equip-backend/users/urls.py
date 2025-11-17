@@ -1,18 +1,17 @@
 from django.urls import path
-from users.views import (
-    login_view,
-    token_refresh_view,
-    users_list,
-    users_detail,
-    users_bulk,
-    users_search,
-)
+from users.views.views_auth import login_view, token_refresh_view
+from users.views.views_user import users_list, users_detail
+from users.views.views_batch import users_bulk
 
 urlpatterns = [
-    path('login/', login_view),
-    path('refresh/', token_refresh_view),
-    path('bulk/', users_bulk),
-    path('search/', users_search),
-    path('<str:id_number>/', users_detail),
-    path('', users_list),
+    # Auth
+    path('login/', login_view, name='login'),
+    path('token/refresh/', token_refresh_view, name='token_refresh'),
+
+    # User CRUD
+    path('users/', users_list, name='users_list'),
+    path('users/<str:id_number>/', users_detail, name='users_detail'),
+
+    # Batch
+    path('users/bulk/', users_bulk, name='users_bulk'),
 ]
