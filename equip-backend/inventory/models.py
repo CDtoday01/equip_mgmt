@@ -1,5 +1,5 @@
 from django.db import models
-from people.models import People
+from users.models import CustomUser
 
 class ItemModel(models.Model):
     """物品類型"""
@@ -22,7 +22,7 @@ class Product(models.Model):
 class Asset(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="assets")
     asset_tag = models.CharField(max_length=100, unique=True)  # SK-001
-    owner_user = models.ForeignKey(People, null=True, blank=True, on_delete=models.SET_NULL, to_field="id_number")
+    owner_user = models.ForeignKey(CustomUser, null=True, blank=True, on_delete=models.SET_NULL, to_field="id_number")
     
     def __str__(self):
         return f"{self.asset_tag} ({self.product})"

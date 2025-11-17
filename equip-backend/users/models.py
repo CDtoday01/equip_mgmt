@@ -2,33 +2,54 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.db import models
 
 class CustomUserManager(BaseUserManager):
-    def create_user(self, email, password=None, **extra_fields):
-        if not email:
-            raise ValueError('Email must be set')
+    def create_user(self, eip_account, id_number, name, password=None, **extra_fields):
+        if not eip_account:
+            raise ValueError("EIP 帳號必須填寫")
+        if not id_number:
+            raise ValueError("身份證字號必須填寫")
         if not password:
-            raise ValueError('Password must be set')
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
+            password = id_number  # 不可更動的密碼設計
+
+        user = self.model(
+            eip_account=eip_account,
+            id_number=id_number,
+            name=name,
+            **extra_fields
+        )
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-        return self.create_user(email, password, **extra_fields)
+    def create_superuser(self, eip_account, id_number, name, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        return self.create_user(eip_account, id_number, name, password, **extra_fields)
 
-    def get_by_natural_key(self, email):
-        # 這裡告訴 Django 怎麼用 email 找 user
-        return self.get(email=email)
+    def get_by_natural_key(self, eip_account):
+        return self.get(eip_account=eip_account)
+
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
-    email = models.EmailField(unique=True)
+    eip_account = models.CharField(max_length=100, unique=True)
+    id_number = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=150)
-    is_staff = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
+    email = models.EmailField(blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    title = models.CharField(max_length=100, blank=True, null=True)
+    department = models.ForeignKey(
+        "departments.Department",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="members"
+    )
 
-    USERNAME_FIELD = 'email'  # 登入用欄位
-    REQUIRED_FIELDS = []  # 建 superuser 時需要的欄位
+    is_staff = models.BooleanField(default=False)
+
+    USERNAME_FIELD = "eip_account"
+    REQUIRED_FIELDS = ["id_number", "name"]
 
     objects = CustomUserManager()
+
+    def __str__(self):
+        return f"{self.name} ({self.eip_account})"

@@ -1,7 +1,7 @@
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Asset, Product, StockTransaction
-from people.models import People
+from users.models import CustomUser
 from system.models import SystemSetting
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -112,7 +112,7 @@ def assets_list(request):
             # -----------------------
             owner_user = None
             if owner_name:
-                qs = People.objects.filter(name__icontains=owner_name)
+                qs = CustomUser.objects.filter(name__icontains=owner_name)
                 if qs.count() == 1:
                     owner_user = qs.first()
                 elif qs.count() > 1:
@@ -208,8 +208,8 @@ def stock_transaction(request):
 
         # 用 id_number 查找員工
         try:
-            person = People.objects.get(id_number=person_id_number)
-        except People.DoesNotExist:
+            person = CustomUser.objects.get(id_number=person_id_number)
+        except CustomUser.DoesNotExist:
             return Response({"error": "員工不存在"}, status=status.HTTP_404_NOT_FOUND)
 
         asset.owner_user = person

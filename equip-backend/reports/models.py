@@ -1,5 +1,5 @@
 from django.db import models
-from people.models import People
+from users.models import CustomUser
 
 
 class KVSetting(models.Model):
@@ -15,7 +15,7 @@ class AuditEvent(models.Model):
     entity = models.TextField()
     entity_id = models.TextField()
     action = models.TextField()
-    actor = models.ForeignKey(People, models.SET_NULL, db_column='actor_id', blank=True, null=True)
+    actor = models.ForeignKey(CustomUser, models.SET_NULL, db_column='actor_id', blank=True, null=True)
     data_before = models.JSONField(blank=True, null=True)
     data_after = models.JSONField(blank=True, null=True)
     occurred_at = models.DateTimeField(auto_now_add=True)
