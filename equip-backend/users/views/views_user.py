@@ -55,8 +55,8 @@ def users_list(request):
 @api_view(['GET', 'PUT', 'DELETE'])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
-def users_detail(request, id_number):
-    person = get_object_or_404(User, id_number=id_number)
+def users_detail(request, pk):
+    person = get_object_or_404(User, id=pk)
 
     if request.method == 'GET':
         serializer = CustomUserSerializer(person)

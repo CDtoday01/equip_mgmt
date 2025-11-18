@@ -9,9 +9,9 @@ urlpatterns = [
     path('token/refresh/', token_refresh_view, name='token_refresh'),
 
     # User CRUD
-    path('users/', users_list, name='users_list'),
-    path('users/<str:id_number>/', users_detail, name='users_detail'),
+    path('', users_list, name='users_list'),
+    path('<int:pk>/', users_detail, name='users_detail'),
 
     # Batch
-    path('users/bulk/', users_bulk, name='users_bulk'),
+    path('batch/', users_bulk, name='users_bulk'),
 ]

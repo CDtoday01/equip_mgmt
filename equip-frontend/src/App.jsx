@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-router-dom";
 import PeopleManagement from "./pages/PeopleManagement";
+import PeopleManagementDetail from "./pages/PeopleManagementDetail";
+import PeopleManagementEdit from "./pages/PeopleManagementEdit";
 import AssetManagement from "./pages/AssetManagement";
 import InventoryRecords from "./pages/InventoryRecords";
 import Reports from "./pages/Reports";
@@ -20,7 +22,7 @@ const AppContent = ({ isAuthenticated, setIsAuthenticated }) => {
       {isAuthenticated && (
         <nav style={{ marginBottom: "20px" }}>
           <Link to="/">🏠 首頁</Link> |{" "}
-          <Link to="/users">👥 人員管理</Link> |{" "}
+          <Link to="/people">👥 人員管理</Link> |{" "}
           <Link to="/assets">💼 資產管理</Link> |{" "}
           <Link to="/inventory">📦 出入庫紀錄</Link> |{" "}
           <Link to="/reports">📊 報表</Link> |{" "}
@@ -37,8 +39,16 @@ const AppContent = ({ isAuthenticated, setIsAuthenticated }) => {
           element={isAuthenticated ? <h1>資產管理系統首頁</h1> : <Navigate to="/login" replace />}
         />
         <Route
-          path="/users"
+          path="/people"
           element={isAuthenticated ? <PeopleManagement /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/people/:id"
+          element={isAuthenticated ? <PeopleManagementDetail /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/people/:id/edit"
+          element={isAuthenticated ? <PeopleManagementEdit /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/assets"

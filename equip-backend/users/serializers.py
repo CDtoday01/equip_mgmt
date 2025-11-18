@@ -5,7 +5,8 @@ from departments.models import Department
 class CustomUserSerializer(serializers.ModelSerializer):
     department = serializers.PrimaryKeyRelatedField(
         queryset=Department.objects.all(),
-        required=False
+        required=False,
+        allow_null=True
     )
     department_name = serializers.CharField(source="department.name", read_only=True)
 

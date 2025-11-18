@@ -1,4 +1,3 @@
-// src/api.js
 import axios from "axios";
 
 const api = axios.create({
@@ -36,7 +35,7 @@ async function refreshAccessToken() {
   const refresh = getRefreshToken();
   if (!refresh) throw new Error("No refresh token");
 
-  const response = await axios.post("http://127.0.0.1:8000/api/users/refresh/", {
+  const response = await axios.post("http://127.0.0.1:8000/api/users/token/refresh/", {
     refresh,
   });
 
